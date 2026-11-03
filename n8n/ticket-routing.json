@@ -1,0 +1,62 @@
+{
+  "name": "SupportDesk - Ticket Routing",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "supportdesk/ticket", "responseMode": "onReceived" },
+      "id": "webhook",
+      "name": "Ticket Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "supportdesk-ticket"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://flask:5000/tickets",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "X-API-Key", "value": "={{$env.TICKET_API_KEY}}" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json.body}}"
+      },
+      "id": "flask",
+      "name": "Create Ticket in Flask",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": { "conditions": { "string": [{ "value1": "={{$json.priority}}", "operation": "equals", "value2": "high" }] } },
+      "id": "priority",
+      "name": "High Priority?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [740, 300]
+    },
+    {
+      "parameters": { "channel": "support-alerts", "text": "=High-priority ticket {{$json.id}}: {{$json.title}}" },
+      "id": "slack",
+      "name": "Alert Support",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [980, 180]
+    },
+    {
+      "parameters": { "mode": "runOnceForAllItems", "jsCode": "return items;" },
+      "id": "low-log",
+      "name": "Log Low Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 420]
+    }
+  ],
+  "connections": {
+    "Ticket Webhook": { "main": [[{ "node": "Create Ticket in Flask", "type": "main", "index": 0 }]] },
+    "Create Ticket in Flask": { "main": [[{ "node": "High Priority?", "type": "main", "index": 0 }]] },
+    "High Priority?": { "main": [[{ "node": "Alert Support", "type": "main", "index": 0 }], [{ "node": "Log Low Priority", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

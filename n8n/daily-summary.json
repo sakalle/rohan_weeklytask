@@ -1,0 +1,45 @@
+{
+  "name": "SupportDesk - Daily Summary",
+  "nodes": [
+    {
+      "parameters": { "rule": { "interval": [{ "field": "hours", "hoursInterval": 24 }] } },
+      "id": "schedule",
+      "name": "Every 24 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": { "method": "GET", "url": "http://flask:5000/tickets", "sendHeaders": true, "headerParameters": { "parameters": [{ "name": "X-API-Key", "value": "={{$env.TICKET_API_KEY}}" }] } },
+      "id": "tickets",
+      "name": "Fetch Tickets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": { "mode": "runOnceForAllItems", "jsCode": "const tickets = items[0].json.items || []; return [{json: {summary: `Open tickets: ${tickets.filter(t => t.status !== 'resolved').length}`, tickets}}];" },
+      "id": "summary",
+      "name": "Build Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [740, 300]
+    },
+    {
+      "parameters": { "channel": "support-daily", "text": "={{$json.summary}}" },
+      "id": "slack",
+      "name": "Send Daily Summary",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [980, 300]
+    }
+  ],
+  "connections": {
+    "Every 24 Hours": { "main": [[{ "node": "Fetch Tickets", "type": "main", "index": 0 }]] },
+    "Fetch Tickets": { "main": [[{ "node": "Build Summary", "type": "main", "index": 0 }]] },
+    "Build Summary": { "main": [[{ "node": "Send Daily Summary", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

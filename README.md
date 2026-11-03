@@ -1,0 +1,54 @@
+# SupportDesk AI — Week 1
+
+Flask + SQLite backend and n8n automation foundation for the SupportDesk AI capstone.
+
+## Run locally
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+$env:TICKET_API_KEY = "local-secret"
+python seed.py
+flask --app wsgi run --debug
+```
+
+- Health: `GET http://localhost:5000/health`
+- Swagger-style docs: `http://localhost:5000/docs`
+- Tickets require `X-API-Key: local-secret`.
+
+## API
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/health` | Public health check |
+| GET | `/tickets` | Paginated ticket list |
+| POST | `/tickets` | Create a validated ticket |
+| GET | `/tickets/<id>` | Get a ticket |
+| PATCH | `/tickets/<id>` | Update a ticket |
+
+Example:
+
+```powershell
+curl.exe -H "X-API-Key: local-secret" -H "Content-Type: application/json" `
+  -d '{\"title\":\"Login issue\",\"description\":\"Cannot sign in\",\"customer_email\":\"user@example.com\",\"priority\":\"high\"}' `
+  http://localhost:5000/tickets
+```
+
+## Docker and n8n
+
+`docker compose up --build` starts Flask on port 5000 and n8n on port 5678.
+Import `n8n/ticket-routing.json` and `n8n/daily-summary.json` into n8n, then
+configure Slack credentials. The routing workflow branches high priority tickets
+to an alert and low priority tickets to a log node.
+
+## Quality
+
+```powershell
+ruff check .
+pytest
+```
+
+Commits should use Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`).
+Open changes through a pull request and use `.env.example` for local settings;
+never commit secrets.

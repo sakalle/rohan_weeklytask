@@ -1,0 +1,23 @@
+services:
+  flask:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      TICKET_API_KEY: ${TICKET_API_KEY:-dev-key-change-me}
+      DATABASE_URL: sqlite:////data/supportdesk.db
+    volumes:
+      - supportdesk-data:/data
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_SECURE_COOKIE: "false"
+      TICKET_API_KEY: ${TICKET_API_KEY:-dev-key-change-me}
+    volumes:
+      - n8n-data:/home/node/.n8n
+
+volumes:
+  supportdesk-data:
+  n8n-data:
