@@ -5,3 +5,5 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///supportdesk.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     API_KEY = os.getenv("TICKET_API_KEY", "dev-key-change-me")
+    N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
+    N8N_WEBHOOK_SECRET = os.getenv("N8N_WEBHOOK_SECRET")

@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+
 def ticket_payload():
     return {
         "title": "Login issue",
@@ -18,13 +21,22 @@ def test_ticket_requires_api_key(client):
 
 
 def test_create_and_get_ticket(client, headers):
-    created = client.post("/tickets", json=ticket_payload(), headers=headers)
+    with patch("app.routes.send_ticket_alert") as send_alert:
+        created = client.post("/tickets", json=ticket_payload(), headers=headers)
+    send_alert.assert_called_once()
     assert created.status_code == 201
     ticket_id = created.json["id"]
 
     fetched = client.get(f"/tickets/{ticket_id}", headers=headers)
     assert fetched.status_code == 200
     assert fetched.json["priority"] == "high"
+
+
+def test_ticket_is_stored_when_n8n_is_not_configured(client, headers):
+    with patch("app.routes.send_ticket_alert") as send_alert:
+        response = client.post("/tickets", json=ticket_payload(), headers=headers)
+    assert response.status_code == 201
+    send_alert.assert_called_once_with(response.json)
 
 
 def test_invalid_ticket_returns_clean_400(client, headers):

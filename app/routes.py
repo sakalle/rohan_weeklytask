@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request
 from .auth import require_api_key
 from .extensions import db
 from .models import Ticket
+from .notifications import send_ticket_alert
 from .schemas import TicketCreate, TicketUpdate
 
 api = Blueprint("api", __name__)
@@ -82,6 +83,7 @@ def tickets():
     ticket = Ticket(**payload.model_dump())
     db.session.add(ticket)
     db.session.commit()
+    send_ticket_alert(ticket.to_dict())
     logger.info("Created ticket id=%s priority=%s", ticket.id, ticket.priority)
     return jsonify(ticket.to_dict()), 201
 
