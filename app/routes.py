@@ -1,6 +1,6 @@
 import logging
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, redirect, request
 
 from .auth import require_api_key
 from .extensions import db
@@ -16,11 +16,21 @@ def health():
     return jsonify({"status": "ok"})
 
 
+@api.get("/")
+def root():
+    return redirect("/docs")
+
+
 @api.get("/docs")
 def docs():
     return (
-        "<!doctype html><html><head><title>SupportDesk API</title></head>"
-        '<body><redoc spec-url="/openapi.json"></redoc>'
+        "<!doctype html><html><head><meta charset=\"utf-8\">"
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        "<title>SupportDesk API</title></head>"
+        '<body><h1>SupportDesk API</h1>'
+        '<p>Interactive documentation is loading. '
+        '<a href="/openapi.json">Open the OpenAPI JSON</a>.</p>'
+        '<redoc spec-url="/openapi.json"></redoc>'
         '<script src="https://cdn.jsdelivr.net/npm/redoc@latest/'
         'bundles/redoc.standalone.js"></script>'
         "</body></html>"
