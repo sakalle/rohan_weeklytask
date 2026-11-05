@@ -51,19 +51,6 @@ ruff check .
 pytest
 ```
 
-<<<<<<< Updated upstream
-=======
-## Week 1 demo checklist
-
-1. Start Flask and verify `GET /health` returns `{"status": "ok"}`.
-2. Send a high-priority ticket with `X-API-Key` and confirm it is stored.
-3. List tickets with `GET /tickets` to show database persistence.
-4. Configure `N8N_WEBHOOK_URL` with the office n8n alert webhook URL.
-5. Import the n8n workflows and create a ticket through Flask.
-6. Confirm high-priority tickets alert support and low-priority tickets are logged.
-7. Send invalid input and show the clean `400 validation failed` response.
-
->>>>>>> Stashed changes
 Commits should use Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`).
 Open changes through a pull request and use `.env.example` for local settings;
 never commit secrets.
