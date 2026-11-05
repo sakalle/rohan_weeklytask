@@ -13,6 +13,18 @@ def test_health_is_public(client):
     assert response.json == {"status": "ok"}
 
 
+def test_root_redirects_to_docs(client):
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/docs"
+
+
+def test_docs_exposes_openapi_link(client):
+    response = client.get("/docs")
+    assert response.status_code == 200
+    assert "/openapi.json" in response.text
+
+
 def test_ticket_requires_api_key(client):
     assert client.get("/tickets").status_code == 401
 

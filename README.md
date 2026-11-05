@@ -16,6 +16,7 @@ flask --app wsgi run --debug
 - Health: `GET http://localhost:5000/health`
 - Swagger-style docs: `http://localhost:5000/docs`
 - Tickets require `X-API-Key: local-secret`.
+- Set `N8N_WEBHOOK_URL` to the office n8n alert webhook URL to enable alert routing.
 
 ## API
 
@@ -39,8 +40,9 @@ curl.exe -H "X-API-Key: local-secret" -H "Content-Type: application/json" `
 
 `docker compose up --build` starts Flask on port 5000 and n8n on port 5678.
 Import `n8n/ticket-routing.json` and `n8n/daily-summary.json` into n8n, then
-configure Slack credentials. The routing workflow branches high priority tickets
-to an alert and low priority tickets to a log node.
+configure Slack credentials. Flask is the system of record: it validates and
+saves tickets to SQLite, then sends the saved ticket event to n8n. n8n only
+branches high priority tickets to an alert and low priority tickets to a log node.
 
 ## Quality
 
