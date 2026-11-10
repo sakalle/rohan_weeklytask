@@ -151,6 +151,47 @@ def test_ingest_document_validates_input(client, headers):
     assert response.json["error"] == "validation failed"
 
 
+def test_chat_says_dont_know_without_sources(client, headers):
+    response = client.post(
+        "/chat", json={"question": "What is the moon made of?"}, headers=headers
+    )
+    assert response.status_code == 200
+    assert "don't know" in response.json["answer"]
+    assert response.json["sources"] == []
+
+
+def test_chat_returns_sources_and_streams(client, headers):
+    client.post(
+        "/docs/ingest",
+        json={
+            "title": "Password reset",
+            "content": "Reset passwords from account settings.",
+            "source": "help-center",
+        },
+        headers=headers,
+    )
+    client.application.config.update(
+        LLM_API_URL="https://llm.example.test/v1/chat/completions",
+        LLM_API_KEY="test-key",
+    )
+    with patch(
+        "app.chat._request_with_retry",
+        return_value="Use account settings to reset the password.",
+    ):
+        response = client.post(
+            "/chat", json={"question": "How do I reset my password?"}, headers=headers
+        )
+        stream = client.post(
+            "/chat/stream",
+            json={"question": "How do I reset my password?"},
+            headers=headers,
+        )
+    assert response.status_code == 200
+    assert response.json["sources"][0]["source"] == "help-center"
+    assert stream.status_code == 200
+    assert b"[DONE]" in stream.data
+
+
 def test_ticket_requires_api_key(client):
     assert client.get("/tickets").status_code == 401
 

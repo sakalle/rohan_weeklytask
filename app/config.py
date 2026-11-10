@@ -10,3 +10,4 @@ class Config:
     LLM_API_URL = os.getenv("LLM_API_URL")
     LLM_API_KEY = os.getenv("LLM_API_KEY")
     LLM_MODEL = os.getenv("LLM_MODEL", "supportdesk-classifier")
+    CHAT_DAILY_QUOTA = int(os.getenv("CHAT_DAILY_QUOTA", "20"))

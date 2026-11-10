@@ -1,9 +1,10 @@
 import logging
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, Response, jsonify, request, stream_with_context
 
 from .ai import ClassificationRequest, SummaryRequest, classify_text, summarize_text
 from .auth import require_api_key
+from .chat import answer_question, stream_answer
 from .extensions import db
 from .models import KnowledgeDocument, Ticket
 from .notifications import send_ticket_alert
@@ -40,6 +41,29 @@ def classify():
 def summarize():
     payload = SummaryRequest.model_validate(request.get_json(silent=True) or {})
     return jsonify(summarize_text(payload.text).model_dump())
+
+
+@api.post("/chat")
+@require_api_key
+def chat():
+    body = request.get_json(silent=True) or {}
+    question = body.get("question")
+    if not isinstance(question, str) or not question.strip() or len(question) > 10_000:
+        raise ValueError("question must be a non-empty string")
+    return jsonify(answer_question(question, request.headers["X-API-Key"]))
+
+
+@api.post("/chat/stream")
+@require_api_key
+def chat_stream():
+    body = request.get_json(silent=True) or {}
+    question = body.get("question")
+    if not isinstance(question, str) or not question.strip() or len(question) > 10_000:
+        raise ValueError("question must be a non-empty string")
+    return Response(
+        stream_with_context(stream_answer(question, request.headers["X-API-Key"])),
+        mimetype="text/event-stream",
+    )
 
 
 @api.get("/docs")

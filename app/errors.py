@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from pydantic import ValidationError
 
 from .ai import ClassificationError, SummaryError
+from .chat import ChatError
 from .schemas import model_errors
 
 
@@ -17,6 +18,10 @@ def register_error_handlers(app: Flask) -> None:
     @app.errorhandler(SummaryError)
     def handle_summary_error(error: SummaryError):
         return jsonify({"error": "AI summarization unavailable", "message": str(error)}), 503
+
+    @app.errorhandler(ChatError)
+    def handle_chat_error(error: ChatError):
+        return jsonify({"error": "chat unavailable", "message": str(error)}), 503
 
     @app.errorhandler(404)
     def handle_not_found(_error):
