@@ -16,6 +16,20 @@ def test_health_is_public(client):
     assert response.json == {"status": "ok"}
 
 
+def test_docs_uses_swagger_ui(client):
+    response = client.get("/docs")
+    assert response.status_code == 200
+    assert "swagger-ui.css" in response.text
+    assert "swagger-ui-bundle.js" in response.text
+
+
+def test_openapi_describes_interactive_request_schemas(client):
+    response = client.get("/openapi.json")
+    assert response.status_code == 200
+    assert response.json["components"]["schemas"]["TicketCreate"]["required"]
+    assert "/ai/classify" in response.json["paths"]
+
+
 def test_classify_requires_api_key(client):
     response = client.post("/ai/classify", json={"text": "I cannot sign in"})
     assert response.status_code == 401

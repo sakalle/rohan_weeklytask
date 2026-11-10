@@ -28,10 +28,17 @@ def classify():
 @api.get("/docs")
 def docs():
     return (
-        "<!doctype html><html><head><title>SupportDesk API</title></head>"
-        '<body><redoc spec-url="/openapi.json"></redoc>'
-        '<script src="https://cdn.jsdelivr.net/npm/redoc@latest/'
-        'bundles/redoc.standalone.js"></script>'
+        "<!doctype html><html><head><meta charset=\"utf-8\">"
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        "<title>SupportDesk API — Swagger UI</title>"
+        '<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">'
+        "</head><body><div id=\"swagger-ui\"></div>"
+        '<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>'
+        "<script>"
+        "window.ui = SwaggerUIBundle({url:'/openapi.json',dom_id:'#swagger-ui',"
+        "deepLinking:true,presets:[SwaggerUIBundle.presets.apis,"
+        "SwaggerUIBundle.SwaggerUIStandalonePreset],layout:'BaseLayout'});"
+        "</script>"
         "</body></html>"
     )
 
@@ -41,12 +48,62 @@ def openapi():
     return jsonify(
         {
             "openapi": "3.0.3",
-            "info": {"title": "SupportDesk API", "version": "0.1.0"},
+            "info": {
+                "title": "SupportDesk API",
+                "description": "SupportDesk ticket and AI classification API.",
+                "version": "0.2.0",
+            },
             "servers": [{"url": "/"}],
             "components": {
                 "securitySchemes": {
                     "ApiKeyAuth": {"type": "apiKey", "in": "header", "name": "X-API-Key"}
-                }
+                },
+                "schemas": {
+                    "TicketCreate": {
+                        "type": "object",
+                        "required": ["title", "description", "customer_email"],
+                        "properties": {
+                            "title": {"type": "string", "maxLength": 200},
+                            "description": {"type": "string", "maxLength": 10000},
+                            "customer_email": {"type": "string", "format": "email"},
+                            "priority": {
+                                "type": "string",
+                                "enum": ["low", "high"],
+                                "default": "low",
+                            },
+                        },
+                    },
+                    "TicketUpdate": {
+                        "type": "object",
+                        "properties": {
+                            "title": {"type": "string", "maxLength": 200},
+                            "description": {"type": "string", "maxLength": 10000},
+                            "customer_email": {"type": "string", "format": "email"},
+                            "priority": {"type": "string", "enum": ["low", "high"]},
+                            "status": {
+                                "type": "string",
+                                "enum": ["open", "in_progress", "resolved"],
+                            },
+                        },
+                    },
+                    "ClassificationRequest": {
+                        "type": "object",
+                        "required": ["text"],
+                        "properties": {"text": {"type": "string", "maxLength": 10000}},
+                    },
+                    "ClassificationResult": {
+                        "type": "object",
+                        "required": ["category", "priority", "sentiment"],
+                        "properties": {
+                            "category": {"type": "string"},
+                            "priority": {"type": "string", "enum": ["low", "high"]},
+                            "sentiment": {
+                                "type": "string",
+                                "enum": ["positive", "neutral", "negative"],
+                            },
+                        },
+                    },
+                },
             },
             "security": [{"ApiKeyAuth": []}],
             "paths": {
@@ -55,20 +112,74 @@ def openapi():
                 },
                 "/ai/classify": {
                     "post": {
+                        "summary": "Classify a support message",
+                        "requestBody": {
+                            "required": True,
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/ClassificationRequest"}
+                                }
+                            },
+                        },
                         "responses": {
-                            "200": {"description": "Classification result"},
+                            "200": {
+                                "description": "Classification result",
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "$ref": "#/components/schemas/ClassificationResult"
+                                        }
+                                    }
+                                },
+                            },
                             "400": {"description": "Invalid request"},
                             "503": {"description": "AI service unavailable"},
                         }
                     }
                 },
                 "/tickets": {
-                    "get": {"responses": {"200": {"description": "Ticket list"}}},
-                    "post": {"responses": {"201": {"description": "Ticket created"}}},
+                    "get": {
+                        "summary": "List tickets",
+                        "responses": {"200": {"description": "Ticket list"}},
+                    },
+                    "post": {
+                        "summary": "Create a ticket",
+                        "requestBody": {
+                            "required": True,
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/TicketCreate"}
+                                }
+                            },
+                        },
+                        "responses": {"201": {"description": "Ticket created"}},
+                    },
                 },
                 "/tickets/{ticket_id}": {
-                    "get": {"responses": {"200": {"description": "Ticket"}}},
-                    "patch": {"responses": {"200": {"description": "Ticket updated"}}},
+                    "parameters": [
+                        {
+                            "name": "ticket_id",
+                            "in": "path",
+                            "required": True,
+                            "schema": {"type": "integer"},
+                        }
+                    ],
+                    "get": {
+                        "summary": "Get a ticket",
+                        "responses": {"200": {"description": "Ticket"}},
+                    },
+                    "patch": {
+                        "summary": "Update a ticket",
+                        "requestBody": {
+                            "required": True,
+                            "content": {
+                                "application/json": {
+                                    "schema": {"$ref": "#/components/schemas/TicketUpdate"}
+                                }
+                            },
+                        },
+                        "responses": {"200": {"description": "Ticket updated"}},
+                    },
                 },
             },
         }
