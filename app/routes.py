@@ -5,12 +5,22 @@ from flask import Blueprint, jsonify, request
 from .ai import ClassificationRequest, SummaryRequest, classify_text, summarize_text
 from .auth import require_api_key
 from .extensions import db
-from .models import Ticket
+from .models import KnowledgeDocument, Ticket
 from .notifications import send_ticket_alert
-from .schemas import TicketCreate, TicketUpdate
+from .schemas import DocumentIngest, TicketCreate, TicketUpdate
 
 api = Blueprint("api", __name__)
 logger = logging.getLogger(__name__)
+
+
+@api.post("/docs/ingest")
+@require_api_key
+def ingest_document():
+    payload = DocumentIngest.model_validate(request.get_json(silent=True) or {})
+    document = KnowledgeDocument(**payload.model_dump())
+    db.session.add(document)
+    db.session.commit()
+    return jsonify(document.to_dict()), 201
 
 
 @api.get("/health")
@@ -150,6 +160,33 @@ def openapi():
                                                 "schema": {
                                                     "$ref": "#/components/schemas/SummaryRequest"
                                                 }
+                                            }
+                                        },
+                                        "/docs/ingest": {
+                                            "post": {
+                                                "summary": "Ingest a knowledge-base document",
+                                                "requestBody": {
+                                                    "required": True,
+                                                    "content": {
+                                                        "application/json": {
+                                                            "schema": {
+                                                                "type": "object",
+                                                                "required": ["title", "content"],
+                                                                "properties": {
+                                                                    "title": {"type": "string"},
+                                                                    "content": {"type": "string"},
+                                                                    "source": {
+                                                                        "type": "string",
+                                                                        "default": "manual",
+                                                                    },
+                                                                },
+                                                            }
+                                                        }
+                                                    },
+                                                },
+                                                "responses": {
+                                                    "201": {"description": "Document ingested"}
+                                                },
                                             }
                                         },
                                     },

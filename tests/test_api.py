@@ -124,6 +124,33 @@ def test_summarize_returns_friendly_error_when_unconfigured(client, headers):
     assert response.json["error"] == "AI summarization unavailable"
 
 
+def test_ingest_document_and_retrieve_it(client, headers):
+    response = client.post(
+        "/docs/ingest",
+        json={
+            "title": "Password reset",
+            "content": "Customers can reset a password from the account settings page.",
+            "source": "help-center",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201
+    assert response.json["source"] == "help-center"
+
+    from app.rag import retrieve_documents
+
+    results = retrieve_documents("password reset")
+    assert results[0]["id"] == response.json["id"]
+
+
+def test_ingest_document_validates_input(client, headers):
+    response = client.post(
+        "/docs/ingest", json={"title": "Missing content"}, headers=headers
+    )
+    assert response.status_code == 400
+    assert response.json["error"] == "validation failed"
+
+
 def test_ticket_requires_api_key(client):
     assert client.get("/tickets").status_code == 401
 
