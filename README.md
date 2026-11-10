@@ -60,6 +60,11 @@ require the API key and call an OpenAI-compatible chat-completions endpoint
 configured through environment variables. Invalid model output is retried once
 before returning a friendly `503` response.
 
+`POST /chat` answers from ingested knowledge documents and includes source
+citation metadata. `POST /chat/stream` returns the same answer as
+server-sent events. When retrieval finds no relevant document, the bot says it
+does not know instead of inventing an answer.
+
 ## Week 1 demo checklist
 
 1. Start Flask and verify `GET /health` returns `{"status": "ok"}`.
