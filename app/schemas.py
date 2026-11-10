@@ -57,6 +57,14 @@ class TicketUpdate(BaseModel):
         return value
 
 
+class DocumentIngest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=200)
+    content: str = Field(min_length=1, max_length=100_000)
+    source: str = Field(default="manual", min_length=1, max_length=500)
+
+
 def model_errors(error: ValidationError) -> list[dict[str, Any]]:
     return [
         {"field": ".".join(str(item) for item in item["loc"]), "message": item["msg"]}
