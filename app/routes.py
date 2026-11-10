@@ -2,7 +2,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from .ai import ClassificationRequest, classify_text
+from .ai import ClassificationRequest, SummaryRequest, classify_text, summarize_text
 from .auth import require_api_key
 from .extensions import db
 from .models import Ticket
@@ -23,6 +23,13 @@ def health():
 def classify():
     payload = ClassificationRequest.model_validate(request.get_json(silent=True) or {})
     return jsonify(classify_text(payload.text).model_dump())
+
+
+@api.post("/ai/summarize")
+@require_api_key
+def summarize():
+    payload = SummaryRequest.model_validate(request.get_json(silent=True) or {})
+    return jsonify(summarize_text(payload.text).model_dump())
 
 
 @api.get("/docs")
@@ -102,6 +109,19 @@ def openapi():
                                 "enum": ["positive", "neutral", "negative"],
                             },
                         },
+                        "SummaryRequest": {
+                            "type": "object",
+                            "required": ["text"],
+                            "properties": {"text": {"type": "string", "maxLength": 10000}},
+                        },
+                        "SummaryResult": {
+                            "type": "object",
+                            "required": ["summary", "key_points"],
+                            "properties": {
+                                "summary": {"type": "string"},
+                                "key_points": {"type": "array", "items": {"type": "string"}},
+                            },
+                        },
                     },
                 },
             },
@@ -118,6 +138,35 @@ def openapi():
                             "content": {
                                 "application/json": {
                                     "schema": {"$ref": "#/components/schemas/ClassificationRequest"}
+                                }
+                            },
+                            "/ai/summarize": {
+                                "post": {
+                                    "summary": "Summarize a support message",
+                                    "requestBody": {
+                                        "required": True,
+                                        "content": {
+                                            "application/json": {
+                                                "schema": {
+                                                    "$ref": "#/components/schemas/SummaryRequest"
+                                                }
+                                            }
+                                        },
+                                    },
+                                    "responses": {
+                                        "200": {
+                                            "description": "Summary result",
+                                            "content": {
+                                                "application/json": {
+                                                    "schema": {
+                                                        "$ref": "#/components/schemas/SummaryResult"
+                                                    }
+                                                }
+                                            },
+                                        },
+                                        "400": {"description": "Invalid request"},
+                                        "503": {"description": "AI service unavailable"},
+                                    },
                                 }
                             },
                         },

@@ -80,6 +80,50 @@ def test_classify_returns_friendly_error_when_unconfigured(client, headers):
     assert response.json["error"] == "AI classification unavailable"
 
 
+def test_summarize_returns_validated_result(client, headers):
+    client.application.config.update(
+        LLM_API_URL="https://llm.example.test/v1/chat/completions",
+        LLM_API_KEY="test-key",
+    )
+    with patch(
+        "app.ai._request_classification",
+        return_value={
+            "summary": "The customer cannot sign in.",
+            "key_points": ["Login fails", "Customer needs access"],
+        },
+    ):
+        response = client.post(
+            "/ai/summarize", json={"text": "I cannot sign in"}, headers=headers
+        )
+    assert response.status_code == 200
+    assert response.json["key_points"] == ["Login fails", "Customer needs access"]
+
+
+def test_summarize_retries_invalid_result(client, headers):
+    client.application.config.update(
+        LLM_API_URL="https://llm.example.test/v1/chat/completions",
+        LLM_API_KEY="test-key",
+    )
+    with patch(
+        "app.ai._request_classification",
+        side_effect=[
+            {"summary": "", "key_points": []},
+            {"summary": "The customer needs help.", "key_points": ["Support needed"]},
+        ],
+    ) as request:
+        response = client.post(
+            "/ai/summarize", json={"text": "Please help"}, headers=headers
+        )
+    assert response.status_code == 200
+    assert request.call_count == 2
+
+
+def test_summarize_returns_friendly_error_when_unconfigured(client, headers):
+    response = client.post("/ai/summarize", json={"text": "Help"}, headers=headers)
+    assert response.status_code == 503
+    assert response.json["error"] == "AI summarization unavailable"
+
+
 def test_ticket_requires_api_key(client):
     assert client.get("/tickets").status_code == 401
 

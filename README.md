@@ -54,10 +54,11 @@ pytest
 ## Week 2 AI classification
 
 `POST /ai/classify` accepts `{"text": "..."}` and returns validated
-`category`, `priority`, and `sentiment` fields. The endpoint requires the API
-key and calls an OpenAI-compatible chat-completions endpoint configured through
-environment variables. Invalid model output is retried once before returning a
-friendly `503` response.
+`category`, `priority`, and `sentiment` fields. `POST /ai/summarize` accepts the
+same input and returns a validated `summary` plus `key_points`. Both endpoints
+require the API key and call an OpenAI-compatible chat-completions endpoint
+configured through environment variables. Invalid model output is retried once
+before returning a friendly `503` response.
 
 ## Week 1 demo checklist
 
