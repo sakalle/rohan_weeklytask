@@ -2,6 +2,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
+from .ai import ClassificationRequest, classify_text
 from .auth import require_api_key
 from .extensions import db
 from .models import Ticket
@@ -15,6 +16,13 @@ logger = logging.getLogger(__name__)
 @api.get("/health")
 def health():
     return jsonify({"status": "ok"})
+
+
+@api.post("/ai/classify")
+@require_api_key
+def classify():
+    payload = ClassificationRequest.model_validate(request.get_json(silent=True) or {})
+    return jsonify(classify_text(payload.text).model_dump())
 
 
 @api.get("/docs")
@@ -44,6 +52,15 @@ def openapi():
             "paths": {
                 "/health": {
                     "get": {"security": [], "responses": {"200": {"description": "Healthy"}}}
+                },
+                "/ai/classify": {
+                    "post": {
+                        "responses": {
+                            "200": {"description": "Classification result"},
+                            "400": {"description": "Invalid request"},
+                            "503": {"description": "AI service unavailable"},
+                        }
+                    }
                 },
                 "/tickets": {
                     "get": {"responses": {"200": {"description": "Ticket list"}}},

@@ -16,6 +16,56 @@ def test_health_is_public(client):
     assert response.json == {"status": "ok"}
 
 
+def test_classify_requires_api_key(client):
+    response = client.post("/ai/classify", json={"text": "I cannot sign in"})
+    assert response.status_code == 401
+
+
+def test_classify_returns_validated_result(client, headers):
+    client.application.config.update(
+        LLM_API_URL="https://llm.example.test/v1/chat/completions",
+        LLM_API_KEY="test-key",
+    )
+    with patch(
+        "app.ai._request_classification",
+        return_value={
+            "category": "authentication",
+            "priority": "high",
+            "sentiment": "negative",
+        },
+    ):
+        response = client.post(
+            "/ai/classify", json={"text": "I cannot sign in"}, headers=headers
+        )
+    assert response.status_code == 200
+    assert response.json["priority"] == "high"
+
+
+def test_classify_retries_invalid_result(client, headers):
+    client.application.config.update(
+        LLM_API_URL="https://llm.example.test/v1/chat/completions",
+        LLM_API_KEY="test-key",
+    )
+    with patch(
+        "app.ai._request_classification",
+        side_effect=[
+            {"category": "authentication", "priority": "urgent", "sentiment": "negative"},
+            {"category": "authentication", "priority": "high", "sentiment": "negative"},
+        ],
+    ) as request:
+        response = client.post(
+            "/ai/classify", json={"text": "I cannot sign in"}, headers=headers
+        )
+    assert response.status_code == 200
+    assert request.call_count == 2
+
+
+def test_classify_returns_friendly_error_when_unconfigured(client, headers):
+    response = client.post("/ai/classify", json={"text": "Help"}, headers=headers)
+    assert response.status_code == 503
+    assert response.json["error"] == "AI classification unavailable"
+
+
 def test_ticket_requires_api_key(client):
     assert client.get("/tickets").status_code == 401
 
