@@ -16,6 +16,7 @@ flask --app wsgi run --debug
 - Health: `GET http://localhost:5000/health`
 - Swagger-style docs: `http://localhost:5000/docs`
 - Tickets require `X-API-Key: local-secret`.
+- Set `LLM_API_URL`, `LLM_API_KEY`, and `LLM_MODEL` to enable `/ai/classify`.
 
 ## API
 
@@ -26,6 +27,7 @@ flask --app wsgi run --debug
 | POST | `/tickets` | Create a validated ticket |
 | GET | `/tickets/<id>` | Get a ticket |
 | PATCH | `/tickets/<id>` | Update a ticket |
+| POST | `/ai/classify` | Classify text with the configured LLM |
 
 Example:
 
@@ -48,6 +50,46 @@ to an alert and low priority tickets to a log node.
 ruff check .
 pytest
 ```
+
+## Week 2 AI classification
+
+`POST /ai/classify` accepts `{"text": "..."}` and returns validated
+`category`, `priority`, and `sentiment` fields. `POST /ai/summarize` accepts the
+same input and returns a validated `summary` plus `key_points`. Both endpoints
+require the API key and call an OpenAI-compatible chat-completions endpoint
+configured through environment variables. Invalid model output is retried once
+before returning a friendly `503` response.
+
+`POST /chat` answers from ingested knowledge documents and includes source
+citation metadata. `POST /chat/stream` returns the same answer as
+server-sent events. When retrieval finds no relevant document, the bot says it
+does not know instead of inventing an answer.
+
+### Week 2 demo
+
+1. Configure `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL`, and `CHAT_DAILY_QUOTA`,
+   then start Flask.
+2. Open `/docs`, click **Authorize**, and enter the API key.
+3. Use `POST /docs/ingest` with a small support article.
+4. Use `POST /ai/classify` and `POST /ai/summarize` on the same ticket text.
+5. Use `POST /chat` with a question answered by the article; show the returned
+   `sources` and `conversation_id`.
+6. Use `POST /chat/stream` and show the `sources`, `answer`, and `[DONE]` SSE
+   events.
+7. Ask an unrelated question and show the “I don't know” response.
+8. Send an injection request and show the safe refusal.
+9. Import `n8n/ticket-routing.json`, set `FLASK_BASE_URL` and
+   `TICKET_API_KEY`, publish it, and show classify → high-priority draft or
+   low-priority log.
+
+## Week 1 demo checklist
+
+1. Start Flask and verify `GET /health` returns `{"status": "ok"}`.
+2. Send a high-priority ticket with `X-API-Key` and confirm it is stored.
+3. List tickets with `GET /tickets` to show database persistence.
+4. Import the n8n workflows and trigger the webhook.
+5. Confirm high-priority tickets alert support and low-priority tickets are logged.
+6. Send invalid input and show the clean `400 validation failed` response.
 
 Commits should use Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`).
 Open changes through a pull request and use `.env.example` for local settings;
