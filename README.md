@@ -65,6 +65,23 @@ citation metadata. `POST /chat/stream` returns the same answer as
 server-sent events. When retrieval finds no relevant document, the bot says it
 does not know instead of inventing an answer.
 
+### Week 2 demo
+
+1. Configure `LLM_API_URL`, `LLM_API_KEY`, `LLM_MODEL`, and `CHAT_DAILY_QUOTA`,
+   then start Flask.
+2. Open `/docs`, click **Authorize**, and enter the API key.
+3. Use `POST /docs/ingest` with a small support article.
+4. Use `POST /ai/classify` and `POST /ai/summarize` on the same ticket text.
+5. Use `POST /chat` with a question answered by the article; show the returned
+   `sources` and `conversation_id`.
+6. Use `POST /chat/stream` and show the `sources`, `answer`, and `[DONE]` SSE
+   events.
+7. Ask an unrelated question and show the “I don't know” response.
+8. Send an injection request and show the safe refusal.
+9. Import `n8n/ticket-routing.json`, set `FLASK_BASE_URL` and
+   `TICKET_API_KEY`, publish it, and show classify → high-priority draft or
+   low-priority log.
+
 ## Week 1 demo checklist
 
 1. Start Flask and verify `GET /health` returns `{"status": "ok"}`.
