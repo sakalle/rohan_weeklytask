@@ -57,6 +57,22 @@ class TicketUpdate(BaseModel):
         return value
 
 
+class DocumentIngest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=200)
+    content: str = Field(min_length=1, max_length=100_000)
+    source: str = Field(default="manual", min_length=1, max_length=500)
+
+
+class ChatRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question: str = Field(min_length=1, max_length=10_000)
+    conversation_id: str | None = Field(default=None, max_length=100)
+    history: list[dict[str, str]] = Field(default_factory=list, max_length=10)
+
+
 def model_errors(error: ValidationError) -> list[dict[str, Any]]:
     return [
         {"field": ".".join(str(item) for item in item["loc"]), "message": item["msg"]}
