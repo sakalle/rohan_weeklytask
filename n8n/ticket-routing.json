@@ -1,33 +1,47 @@
 {
-  "name": "SupportDesk - Ticket Routing",
+  "name": "SupportDesk - AI Ticket Routing",
   "nodes": [
     {
-      "parameters": { "httpMethod": "POST", "path": "supportdesk/ticket", "responseMode": "onReceived" },
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "supportdesk/ticket",
+        "responseMode": "onReceived"
+      },
       "id": "webhook",
       "name": "Ticket Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [240, 300],
-      "webhookId": "supportdesk-ticket"
+      "webhookId": "supportdesk-ticket-ai"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "http://flask:5000/tickets",
+        "url": "={{$env.FLASK_BASE_URL}}/ai/classify",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "X-API-Key", "value": "={{$env.TICKET_API_KEY}}" }] },
+        "headerParameters": {
+          "parameters": [
+            {"name": "X-API-Key", "value": "={{$env.TICKET_API_KEY}}"}
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{$json.body}}"
+        "jsonBody": "={\"text\": \"{{$json.body.description || $json.body.text}}\"}"
       },
-      "id": "flask",
-      "name": "Create Ticket in Flask",
+      "id": "classify",
+      "name": "Classify Ticket",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
       "position": [500, 300]
     },
     {
-      "parameters": { "conditions": { "string": [{ "value1": "={{$json.priority}}", "operation": "equals", "value2": "high" }] } },
+      "parameters": {
+        "conditions": {
+          "string": [
+            {"value1": "={{$json.priority}}", "operation": "equals", "value2": "high"}
+          ]
+        }
+      },
       "id": "priority",
       "name": "High Priority?",
       "type": "n8n-nodes-base.if",
@@ -35,15 +49,21 @@
       "position": [740, 300]
     },
     {
-      "parameters": { "channel": "support-alerts", "text": "=High-priority ticket {{$json.id}}: {{$json.title}}" },
-      "id": "slack",
-      "name": "Alert Support",
-      "type": "n8n-nodes-base.slack",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return items.map(item => ({json: {draft: 'We received your request and will prioritize it for support review.', classification: item.json}}));"
+      },
+      "id": "draft",
+      "name": "Draft Auto Reply",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [980, 180]
     },
     {
-      "parameters": { "mode": "runOnceForAllItems", "jsCode": "return items;" },
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "return items.map(item => ({json: {route: 'low-priority-log', classification: item.json}}));"
+      },
       "id": "low-log",
       "name": "Log Low Priority",
       "type": "n8n-nodes-base.code",
@@ -52,11 +72,20 @@
     }
   ],
   "connections": {
-    "Ticket Webhook": { "main": [[{ "node": "Create Ticket in Flask", "type": "main", "index": 0 }]] },
-    "Create Ticket in Flask": { "main": [[{ "node": "High Priority?", "type": "main", "index": 0 }]] },
-    "High Priority?": { "main": [[{ "node": "Alert Support", "type": "main", "index": 0 }], [{ "node": "Log Low Priority", "type": "main", "index": 0 }]] }
+    "Ticket Webhook": {
+      "main": [[{"node": "Classify Ticket", "type": "main", "index": 0}]]
+    },
+    "Classify Ticket": {
+      "main": [[{"node": "High Priority?", "type": "main", "index": 0}]]
+    },
+    "High Priority?": {
+      "main": [
+        [{"node": "Draft Auto Reply", "type": "main", "index": 0}],
+        [{"node": "Log Low Priority", "type": "main", "index": 0}]
+      ]
+    }
   },
   "active": false,
   "settings": {},
-  "versionId": "1"
+  "versionId": "3"
 }

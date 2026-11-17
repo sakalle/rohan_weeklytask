@@ -6,6 +6,15 @@ services:
     environment:
       TICKET_API_KEY: ${TICKET_API_KEY:-dev-key-change-me}
       DATABASE_URL: sqlite:////data/supportdesk.db
+      LLM_API_URL: ${LLM_API_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-supportdesk-classifier}
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - supportdesk-data:/data
   n8n:
@@ -17,6 +26,26 @@ services:
       TICKET_API_KEY: ${TICKET_API_KEY:-dev-key-change-me}
     volumes:
       - n8n-data:/home/node/.n8n
+  streamlit:
+    build: .
+    command: ["streamlit", "run", "streamlit_app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+    ports:
+      - "8501:8501"
+    environment:
+      FLASK_BASE_URL: http://flask:5000
+      TICKET_API_KEY: ${TICKET_API_KEY:-dev-key-change-me}
+    depends_on:
+      flask:
+        condition: service_healthy
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      flask:
+        condition: service_healthy
 
 volumes:
   supportdesk-data:
