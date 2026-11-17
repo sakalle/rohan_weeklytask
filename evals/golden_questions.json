@@ -1,0 +1,17 @@
+[
+  {"question": "How do I reset my password?", "expected_terms": ["password", "reset"]},
+  {"question": "Where can I change my password?", "expected_terms": ["password", "account"]},
+  {"question": "How do I update account security?", "expected_terms": ["account", "security"]},
+  {"question": "What should I do when login fails?", "expected_terms": ["login"]},
+  {"question": "How can I sign in to the dashboard?", "expected_terms": ["sign", "dashboard"]},
+  {"question": "Where are account settings?", "expected_terms": ["account", "settings"]},
+  {"question": "How do I export a report?", "expected_terms": ["report", "export"]},
+  {"question": "Can I download reports?", "expected_terms": ["report", "download"]},
+  {"question": "How do I create a support ticket?", "expected_terms": ["support", "ticket"]},
+  {"question": "Where can I see my ticket status?", "expected_terms": ["ticket", "status"]},
+  {"question": "How do I update my profile?", "expected_terms": ["profile", "update"]},
+  {"question": "How can I contact support?", "expected_terms": ["contact", "support"]},
+  {"question": "How do I configure notifications?", "expected_terms": ["configure", "notifications"]},
+  {"question": "Where are notification settings?", "expected_terms": ["notification", "settings"]},
+  {"question": "How do I manage my team?", "expected_terms": ["manage", "team"]}
+]
