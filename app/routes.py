@@ -6,7 +6,7 @@ from .ai import ClassificationRequest, SummaryRequest, classify_text, summarize_
 from .auth import require_api_key
 from .chat import answer_question, stream_answer
 from .extensions import db
-from .models import AIUsage, KnowledgeDocument, Ticket
+from .models import AIUsage, AutomationRun, KnowledgeDocument, Ticket
 from .notifications import send_ticket_alert
 from .openapi import api_spec
 from .schemas import ChatRequest, DocumentIngest, TicketCreate, TicketUpdate
@@ -83,22 +83,50 @@ def knowledge_documents():
 def metrics_summary():
     tickets = db.session.execute(db.select(Ticket)).scalars().all()
     usage = db.session.execute(db.select(AIUsage)).scalars().all()
+    automation_runs = db.session.execute(db.select(AutomationRun)).scalars().all()
     by_priority = {
         priority: sum(ticket.priority == priority for ticket in tickets)
         for priority in ("high", "low")
     }
+    categories = {}
+    for ticket in tickets:
+        category = _ticket_category(ticket.title, ticket.description)
+        categories[category] = categories.get(category, 0) + 1
     average_cost = sum(item.cost for item in usage) / len(usage) if usage else 0.0
     return jsonify(
         {
-            "tickets": {"total": len(tickets), "by_priority": by_priority},
+            "tickets": {
+                "total": len(tickets),
+                "by_priority": by_priority,
+                "by_category": categories,
+            },
             "ai_usage": {
                 "requests": len(usage),
                 "average_cost": average_cost,
                 "total_cost": sum(item.cost for item in usage),
             },
             "n8n_configured": bool(current_app.config.get("N8N_WEBHOOK_URL")),
+            "n8n_runs": {
+                "total": len(automation_runs),
+                "successful": sum(run.status == "success" for run in automation_runs),
+                "failed": sum(run.status == "failed" for run in automation_runs),
+                "skipped": sum(run.status == "skipped" for run in automation_runs),
+            },
         }
     )
+
+
+def _ticket_category(title: str, description: str) -> str:
+    text = f"{title} {description}".lower()
+    categories = {
+        "authentication": ("login", "sign in", "password", "credential"),
+        "reporting": ("report", "export", "download"),
+        "account": ("profile", "account", "settings"),
+    }
+    for category, terms in categories.items():
+        if any(term in text for term in terms):
+            return category
+    return "other"
 
 
 @api.get("/metrics")

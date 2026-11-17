@@ -72,3 +72,13 @@ class ConversationMessage(db.Model):
     created_at = db.Column(
         db.DateTime, nullable=False, default=lambda: datetime.now(UTC)
     )
+
+
+class AutomationRun(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.String(20), nullable=False)
+    created_at = db.Column(
+        db.DateTime, nullable=False, default=lambda: datetime.now(UTC)
+    )
+

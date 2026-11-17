@@ -205,11 +205,17 @@ def render_dashboard() -> None:
     first, second, third = st.columns(3)
     first.metric("Tickets", summary["tickets"]["total"])
     second.metric("Average AI cost", f"${summary['ai_usage']['average_cost']:.6f}")
-    third.metric("n8n configured", "Yes" if summary["n8n_configured"] else "No")
+    third.metric("n8n runs", summary["n8n_runs"]["total"])
+    st.subheader("Tickets by category")
+    st.bar_chart(summary["tickets"]["by_category"])
     st.subheader("Tickets by priority")
     st.bar_chart(summary["tickets"]["by_priority"])
     st.subheader("AI usage")
     st.json(summary["ai_usage"])
+    st.caption(
+        f"n8n configured: {'Yes' if summary['n8n_configured'] else 'No'}; "
+        f"successful runs: {summary['n8n_runs']['successful']}"
+    )
 
 
 st.set_page_config(page_title="SupportDesk AI", page_icon="💬", layout="wide")

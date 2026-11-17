@@ -169,6 +169,7 @@ def test_knowledge_list_and_metrics_summary(client, headers):
     assert metrics.status_code == 200
     assert metrics.json["tickets"]["total"] == 0
     assert metrics.json["ai_usage"]["requests"] == 0
+    assert metrics.json["n8n_runs"]["total"] == 0
 
 
 def test_prometheus_metrics_is_public(client):
