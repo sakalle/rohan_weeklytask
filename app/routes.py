@@ -1,12 +1,12 @@
 import logging
 
-from flask import Blueprint, Response, jsonify, redirect, request, stream_with_context
+from flask import Blueprint, Response, current_app, jsonify, redirect, request, stream_with_context
 
 from .ai import ClassificationRequest, SummaryRequest, classify_text, summarize_text
 from .auth import require_api_key
 from .chat import answer_question, stream_answer
 from .extensions import db
-from .models import KnowledgeDocument, Ticket
+from .models import AIUsage, KnowledgeDocument, Ticket
 from .notifications import send_ticket_alert
 from .openapi import api_spec
 from .schemas import ChatRequest, DocumentIngest, TicketCreate, TicketUpdate
@@ -67,6 +67,58 @@ def ingest_document():
     db.session.add(document)
     db.session.commit()
     return jsonify(document.to_dict()), 201
+
+
+@api.get("/knowledge")
+@require_api_key
+def knowledge_documents():
+    documents = db.session.execute(
+        db.select(KnowledgeDocument).order_by(KnowledgeDocument.created_at.desc())
+    ).scalars()
+    return jsonify([document.to_dict() for document in documents])
+
+
+@api.get("/metrics/summary")
+@require_api_key
+def metrics_summary():
+    tickets = db.session.execute(db.select(Ticket)).scalars().all()
+    usage = db.session.execute(db.select(AIUsage)).scalars().all()
+    by_priority = {
+        priority: sum(ticket.priority == priority for ticket in tickets)
+        for priority in ("high", "low")
+    }
+    average_cost = sum(item.cost for item in usage) / len(usage) if usage else 0.0
+    return jsonify(
+        {
+            "tickets": {"total": len(tickets), "by_priority": by_priority},
+            "ai_usage": {
+                "requests": len(usage),
+                "average_cost": average_cost,
+                "total_cost": sum(item.cost for item in usage),
+            },
+            "n8n_configured": bool(current_app.config.get("N8N_WEBHOOK_URL")),
+        }
+    )
+
+
+@api.get("/metrics")
+def prometheus_metrics():
+    ticket_count = db.session.scalar(db.select(db.func.count()).select_from(Ticket)) or 0
+    usage_count = db.session.scalar(db.select(db.func.count()).select_from(AIUsage)) or 0
+    return Response(
+        "\n".join(
+            [
+                "# HELP supportdesk_tickets_total Number of stored tickets.",
+                "# TYPE supportdesk_tickets_total gauge",
+                f"supportdesk_tickets_total {ticket_count}",
+                "# HELP supportdesk_ai_requests_total Number of logged AI requests.",
+                "# TYPE supportdesk_ai_requests_total counter",
+                f"supportdesk_ai_requests_total {usage_count}",
+            ]
+        )
+        + "\n",
+        mimetype="text/plain; version=0.0.4",
+    )
 
 
 @api.post("/chat")

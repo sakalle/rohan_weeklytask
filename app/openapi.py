@@ -97,6 +97,18 @@ def api_spec() -> dict:
                     "responses": {"201": {"description": "Document ingested"}},
                 }
             },
+            "/knowledge": {
+                "get": {
+                    "summary": "List knowledge documents",
+                    "responses": {"200": {"description": "Knowledge documents"}},
+                }
+            },
+            "/metrics/summary": {
+                "get": {
+                    "summary": "Get dashboard metrics",
+                    "responses": {"200": {"description": "Ticket and AI usage metrics"}},
+                }
+            },
             "/chat": {
                 "post": {
                     "summary": "Answer with citations",

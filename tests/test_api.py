@@ -151,6 +151,32 @@ def test_ingest_document_validates_input(client, headers):
     assert response.json["error"] == "validation failed"
 
 
+def test_knowledge_list_and_metrics_summary(client, headers):
+    client.post(
+        "/docs/ingest",
+        json={
+            "title": "Password reset",
+            "content": "Reset passwords from account settings.",
+            "source": "help-center",
+        },
+        headers=headers,
+    )
+    response = client.get("/knowledge", headers=headers)
+    assert response.status_code == 200
+    assert response.json[0]["title"] == "Password reset"
+
+    metrics = client.get("/metrics/summary", headers=headers)
+    assert metrics.status_code == 200
+    assert metrics.json["tickets"]["total"] == 0
+    assert metrics.json["ai_usage"]["requests"] == 0
+
+
+def test_prometheus_metrics_is_public(client):
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "supportdesk_tickets_total" in response.text
+
+
 def test_chat_says_dont_know_without_sources(client, headers):
     response = client.post(
         "/chat", json={"question": "What is the moon made of?"}, headers=headers

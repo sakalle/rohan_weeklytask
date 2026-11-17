@@ -82,6 +82,42 @@ does not know instead of inventing an answer.
    `TICKET_API_KEY`, publish it, and show classify → high-priority draft or
    low-priority log.
 
+## Week 3 Streamlit and integration
+
+Install the Week 3 dependencies with `pip install -r requirements.txt`, then
+start the UI in a second terminal:
+
+```powershell
+$env:FLASK_BASE_URL = "http://127.0.0.1:5000"
+$env:TICKET_API_KEY = "local-secret"
+streamlit run streamlit_app.py
+```
+
+Open `http://127.0.0.1:8501`. The four screens are:
+
+- **Chat:** streaming answers, source panel, loading, empty, and error states.
+- **Tickets:** table, priority filter, create/update form, and AI classify action.
+- **Knowledge base:** text/Markdown upload and ingestion status.
+- **Dashboard:** ticket counts, AI cost summary, and n8n configuration status.
+
+Run the retrieval evaluation with:
+
+```powershell
+python evals/run_eval.py
+```
+
+It evaluates 15 golden questions and fails below the 80% retrieval hit-rate
+threshold. For the full integration stack:
+
+```powershell
+docker compose up --build
+```
+
+This starts Flask (`:5000`), n8n (`:5678`), Streamlit (`:8501`), and
+Prometheus (`:9090`). Prometheus scrapes Flask's public `/metrics` endpoint.
+See [docs/architecture.md](docs/architecture.md) for the architecture and
+request flow used in the final presentation.
+
 ## Week 1 demo checklist
 
 1. Start Flask and verify `GET /health` returns `{"status": "ok"}`.
