@@ -1,0 +1,87 @@
+services:
+  - type: web
+    name: supportdesk-api
+    runtime: docker
+    plan: starter
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    disk:
+      name: supportdesk-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:////data/supportdesk.db
+      - key: TICKET_API_KEY
+        sync: false
+      - key: LLM_API_URL
+        value: https://api.groq.com/openai/v1/chat/completions
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: CHAT_DAILY_QUOTA
+        value: "20"
+      - key: N8N_WEBHOOK_URL
+        sync: false
+      - key: N8N_WEBHOOK_SECRET
+        sync: false
+
+  - type: web
+    name: supportdesk-ui
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: sh -c 'streamlit run streamlit_app.py --server.address=0.0.0.0 --server.port=${PORT:-8501}'
+    envVars:
+      - key: FLASK_BASE_URL
+        value: https://supportdesk-api.onrender.com
+      - key: TICKET_API_KEY
+        sync: false
+
+  - type: web
+    name: supportdesk-n8n
+    runtime: image
+    plan: starter
+    image:
+      url: docker.io/n8nio/n8n:latest
+    healthCheckPath: /healthz
+    disk:
+      name: n8n-data
+      mountPath: /home/node/.n8n
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: N8N_PORT
+        value: "10000"
+      - key: N8N_HOST
+        value: supportdesk-n8n.onrender.com
+      - key: N8N_PROTOCOL
+        value: https
+      - key: WEBHOOK_URL
+        value: https://supportdesk-n8n.onrender.com/
+      - key: N8N_EDITOR_BASE_URL
+        value: https://supportdesk-n8n.onrender.com/
+      - key: FLASK_BASE_URL
+        value: https://supportdesk-api.onrender.com
+      - key: TICKET_API_KEY
+        sync: false
+      - key: N8N_ENCRYPTION_KEY
+        sync: false
+      - key: N8N_SECURE_COOKIE
+        value: "true"
+
+  - type: pserv
+    name: supportdesk-prometheus
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./monitoring/Dockerfile.render
+    dockerContext: ./monitoring
+    disk:
+      name: prometheus-data
+      mountPath: /prometheus
+      sizeGB: 1
+    dockerCommand: --config.file=/etc/prometheus/prometheus.render.yml --storage.tsdb.path=/prometheus
