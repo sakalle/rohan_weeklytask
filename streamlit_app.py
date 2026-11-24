@@ -4,7 +4,14 @@ import os
 import requests
 import streamlit as st
 
-API_URL = os.getenv("FLASK_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
+DEPLOYED_API_URL = "https://supportdesk-api-quso.onrender.com"
+API_URL = os.getenv("FLASK_BASE_URL", DEPLOYED_API_URL).rstrip("/")
+if API_URL in {
+    "http://127.0.0.1:5000",
+    "https://supportdesk-api.onrender.com",
+    "https://supportdesk-api-guso.onrender.com",
+}:
+    API_URL = DEPLOYED_API_URL
 API_KEY = os.getenv("TICKET_API_KEY", "dev-key-change-me")
 
 
