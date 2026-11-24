@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import requests
 import streamlit as st
@@ -19,19 +20,41 @@ def api_request(method: str, path: str, **kwargs):
     headers = kwargs.pop("headers", {})
     headers["X-API-Key"] = API_KEY
     headers.setdefault("Content-Type", "application/json")
-    try:
-        response = requests.request(
-            method, f"{API_URL}{path}", headers=headers, timeout=30, **kwargs
-        )
+    transient_statuses = {502, 503, 504}
+    for attempt in range(3):
+        try:
+            response = requests.request(
+                method,
+                f"{API_URL}{path}",
+                headers=headers,
+                timeout=60,
+                **kwargs,
+            )
+        except requests.RequestException as error:
+            if attempt < 2:
+                time.sleep(5)
+                continue
+            raise RuntimeError(
+                f"Could not reach Flask API after retry: {error}"
+            ) from error
+
+        if response.status_code in transient_statuses and attempt < 2:
+            time.sleep(5)
+            continue
+
         if response.status_code >= 400:
             try:
-                message = response.json().get("message") or response.json().get("error")
+                payload = response.json()
+                message = payload.get("message") or payload.get("error")
             except ValueError:
-                message = response.text
+                message = None
+            if not message:
+                if response.status_code in transient_statuses:
+                    message = "Flask API is waking up or temporarily unavailable"
+                else:
+                    message = "Request failed"
             raise RuntimeError(f"HTTP {response.status_code}: {message}")
         return response
-    except requests.RequestException as error:
-        raise RuntimeError(f"Could not reach Flask API: {error}") from error
 
 
 def show_error(error: Exception) -> None:
